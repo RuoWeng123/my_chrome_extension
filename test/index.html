@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>粤智慧</title>
+  <style type="text/css">
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 300px;
+      width: 300px;
+    }
+
+    .left, .right {
+      width: 150px;
+      height: 300px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .left .top, .right .top {
+      width: 100%;
+      height: 50%;
+      border-right: 1px solid red;
+    }
+
+    .left .bottom, .right .bottom {
+      width: 100%;
+      height: 50%;
+      border-right: 1px solid green;
+    }
+    .left .top #value1 {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .left .bottom .value {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .right .top .unit {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+<h1>粤智慧</h1>
+<div class="container">
+  <div class="left">
+    <div class="top">
+      <div id="value1">
+        这是我的内容，我需要输入超过长度，可以对其他元素遮挡。超过元素的父级，超过父级超过父级
+      </div>
+    </div>
+    <div class="bottom">
+      <div class="value">
+        我是第二行的数据，也要超出数据，1234567890-9877667898766
+      </div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="top">
+      <div class="unit">单位:(人/天)</div>
+    </div>
+    <div class="bottom">
+      <div class="unit">单位:(元)</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

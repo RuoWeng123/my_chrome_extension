@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "cmict inspection",
+  "version": "1.0",
+  "description": "检测页面元素溢出，元素重叠；网络请求，返回数据是否合法",
+  "background":{
+    "service_worker": "background.js"
+  },
+  "permissions": [
+    "storage",
+    "webRequest",
+    "tabs",
+    "scripting",
+    "activeTab",
+    "downloads"
+  ],
+  "action": {
+    "default_icon": "images/cmict.jpg"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["scripts/content.js"]
+    }
+  ]
+}
