@@ -15,7 +15,7 @@
     "downloads"
   ],
   "action": {
-    "default_icon": "images/cmict.jpg"
+    "default_icon": "images/cmict.png"
   },
   "content_scripts": [
     {
