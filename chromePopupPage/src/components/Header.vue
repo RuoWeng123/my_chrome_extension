@@ -11,7 +11,7 @@
       <div class="name_area">
         <div class="left">
           <span class="label">监控页面</span>
-          <el-input v-model="item.title" size="mini" style="width: 300px"></el-input>
+          <el-input v-model="item.title" style="width: 300px"></el-input>
           <el-button class="ml32" type="primary" @click="handleSave">保存名称</el-button>
         </div>
 
@@ -57,7 +57,7 @@ let tabIndex = 1
 const activeTab = ref(null)
 const editableTabs = ref([
   {
-    id: '1',
+    id: 0,
     customId: '1',
     title: 'Tab 1',
     content: 'Tab 1 content'

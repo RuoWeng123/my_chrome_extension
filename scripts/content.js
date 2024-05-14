@@ -1,8 +1,9 @@
-const targetTitle = '粤智慧';
-const elIds = ['value1', 'value2'];
-const elClasses = ['value'];
+const targetTitle = '';
+const elIds = [];
+const elClasses = [];
 // 监听来自background.js的消息
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  getIndexDb();
   if (document.title !== targetTitle) {
     sendResponse('content.js 收到消息,但是你不是我的目标，我不给你返回消息');
   } else {
@@ -12,6 +13,22 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     changeUrl()
   }
 });
+const getIndexDb = () =>{
+  chrome.runtime.sendMessage({ action: 'getLocalStorage' }, function(response) {
+    if (response && response.data) {
+      let localStorageData = JSON.parse(response.data);
+      if(localStorageData.length === 0){
+        return;
+      }
+      targetTitle = localStorageData[0].title;
+      elIds = localStorageData[0].config.ids;
+      elClasses = localStorageData[0].config.classes;
+      console.log('从 popup.html 获取的 localStorage 数据:', localStorageData);
+    } else {
+      console.log('无法获取 localStorage 数据');
+    }
+  });
+}
 // 监测页面路由变化，变化后执行检测页面元素逻辑；
 const changeUrl = () =>{
   window.onhashchange = async function(){
@@ -19,6 +36,7 @@ const changeUrl = () =>{
   }
 }
 const checkPageStructure = async () => {
+  console.log('我要开始检查页面结构了，目标页面是：', targetTitle)
   const targetEls = getTargetEls();
   let overlayList = [];
   let beyondList = [];

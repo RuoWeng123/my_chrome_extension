@@ -44,6 +44,8 @@ export const getPageList = async () => {
 
 export const addConfig = async (config) => {
   await db.configs.add(config)
+
+  await writeDbInStorage();
 }
 export const putConfig = async (config) => {
   let params = {
@@ -55,10 +57,17 @@ export const putConfig = async (config) => {
     createdAt: config.createdAt,
     updatedAt: new Date()
   }
-  await db.configs.put(params, params.pageId)
+  await db.configs.update(params.id, params)
+  
+
+  await writeDbInStorage();
 }
 export const getConfigByPageId = async (pageId) => {
-  return await db.configs.where({ pageId }).first()
+  let config =  await db.configs.where({ pageId }).first()
+  return config
+}
+const getConfigList = async () => {
+  return await db.configs.toArray()
 }
 export const removePage = async (pageId) => {
   try {
@@ -71,6 +80,8 @@ export const removePage = async (pageId) => {
     await db.transaction('rw', ['pages'], async () => {
       await db.pages.where('id').equals(pageId).delete();
     });
+
+    await writeDbInStorage();
   } catch (error) {
     // 如果有任何操作失败，则回滚所有操作
     await db.transaction('rw', ['configs', 'pages'], async () => {
@@ -80,4 +91,25 @@ export const removePage = async (pageId) => {
 
     throw error;
   }
+}
+
+const writeDbInStorage = async () =>{
+  let pages = await getPageList()
+  const configs = await getConfigList()
+  if(pages.length === 0 || configs.length === 0){
+    return
+  }
+
+  let params = pages.map(item =>{
+    let config = configs.find(config => config.pageId === item.id)
+    return {
+      id: item.id,
+      customId: item.customId,
+      title: item.title,
+      content: item.content,
+      config: config
+    }
+  })
+
+  localStorage.setItem('cmict_chrome_extension_db', JSON.stringify(params))
 }

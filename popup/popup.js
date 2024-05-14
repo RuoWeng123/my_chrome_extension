@@ -1,5 +1,8 @@
-// 这个页面用来配置，将数据写入到 storage  或者 indexDb中，页面交互的基本逻辑
-const input = document.getElementById('inputTitle');
-input.addEventListener('change', (event) => {
-  console.log('input value', event.target.value);
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+  if (request.action === 'fetchLocalStorage') {
+    // 获取 localStorage 数据
+    let localStorageData = localStorage.getItem('cmict_chrome_extension_db');
+    // 将数据发送回调用页面（content.js）
+    sendResponse(localStorageData);
+  }
 });

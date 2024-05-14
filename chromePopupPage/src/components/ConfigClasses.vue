@@ -3,7 +3,7 @@
     <div class="top_list">
       <div v-if="currentClassList.length > 0">
         <div v-for="(item, index) in currentClassList" :key="index" class="item_id">
-          <el-input v-model="currentClassList[index]" placeholder="输入id" />
+          <el-input v-model="currentClassList[index]" placeholder="输入class" />
           <el-button type="warning" class="ml14" @click="deleteItem(index)">
             <el-icon>
               <Delete />
@@ -31,24 +31,29 @@ import { reactive, watch, toRaw } from 'vue'
 import { ElInput, ElButton, ElIcon } from 'element-plus'
 
 export default {
-  name: 'ConfigIds',
+  name: 'ConfigClasses',
   props: ['classList'],
   setup(props, { emit }) {
-    const currentClassList = reactive(props.classList)
+    const currentClassList = reactive([...props.classList])
+
     const deleteItem = (index) => {
       currentClassList.splice(index, 1)
     }
     const onAdd = () => {
       currentClassList.push('')
     }
-
+      // 监听 currentIds 的变化，触发 change 事件
     watch(currentClassList, (newValue, oldValue) => {
-      let pushData = toRaw(newValue)
-      let oldData = toRaw(oldValue)
-      if (Array.isArray(pushData)){
-        emit('change', pushData)
-      }
+      emit('change', newValue)
     })
+
+     watch(
+      () => props.classList,
+      (newClasses) => {
+        currentClassList.splice(0, currentClassList.length, ...newClasses)
+      },
+      { immediate: true }
+    )
     return {
       currentClassList,
       deleteItem,

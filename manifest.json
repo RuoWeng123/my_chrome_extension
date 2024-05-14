@@ -14,6 +14,10 @@
     "activeTab",
     "downloads"
   ],
+  "host_permissions": [
+    "http://appcube.zszwfw.cn/service/*",
+    "https://appcube.zszwfw.cn/service/*"
+  ],
   "action": {
     "default_icon": "images/cmict.png"
   },

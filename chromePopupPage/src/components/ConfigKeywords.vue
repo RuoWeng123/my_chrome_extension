@@ -31,10 +31,10 @@ import { reactive, watch, toRaw } from 'vue'
 import { ElInput, ElButton, ElIcon } from 'element-plus'
 
 export default {
-  name: 'ConfigIds',
+  name: 'ConfigKeywords',
   props: ['keywords'],
   setup(props, { emit }) {
-    const currentKeywords = reactive(props.keywords)
+    const currentKeywords = reactive([...props.keywords])
     const deleteItem = (index) => {
       currentKeywords.splice(index, 1)
     }
@@ -42,13 +42,18 @@ export default {
       currentKeywords.push('')
     }
 
+         // 监听 currentIds 的变化，触发 change 事件
     watch(currentKeywords, (newValue, oldValue) => {
-      let pushData = toRaw(newValue)
-      let oldData = toRaw(oldValue)
-      if (Array.isArray(pushData)){
-        emit('change', pushData)
-      }
+      emit('change', newValue)
     })
+
+    watch(
+      () => props.keywords,
+      (newKeywords) => {
+        currentKeywords.splice(0, currentKeywords.length, ...newKeywords)
+      },
+      { immediate: true }
+    )
     return {
       currentKeywords,
       deleteItem,

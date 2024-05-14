@@ -15,7 +15,7 @@
   </div>
 </template>
 <script>
-import { watchEffect, ref } from 'vue'
+import { watchEffect, ref, onMounted, toRef, toRaw } from 'vue'
 import { getConfigByPageId, putConfig, addConfig } from '../db/dbUtils'
 import ConfigIds from './ConfigIds.vue'
 import ConfigClasses from './ConfigClasses.vue'
@@ -28,6 +28,9 @@ export default {
     ConfigKeywords
   },
   setup(props) {
+    onMounted(() => {
+      getConfigData()
+    })
     const config = ref({ ids: [], classes: [], keywords: [] })
     const initConfigData = () => {
       config.value = {
@@ -37,21 +40,29 @@ export default {
       }
     }
     const getConfigData = async () => {
-      if (!props.pageId) {
+      let pageId = toRef(props, 'pageId').value
+      if (!pageId) {
         initConfigData()
         return
       }
-      config.value = await getConfigByPageId(props.pageId)
+      const dbConfig = await getConfigByPageId(pageId)
+      config.value ={
+        id: dbConfig.id,
+        ids: dbConfig.ids,
+        classes: dbConfig.classes,
+        keywords: dbConfig.keywords,
+        createdAt: dbConfig.createdAt,
+        updatedAt: dbConfig.updatedAt
+      }
     }
     const onSaveConfig = () => {
       // save config data
-      console.log('save config data:', config.value)
       let confitParams = {
         id: config.value.id ? config.value.id : undefined,
         pageId: props.pageId,
-        ids: config.value.ids,
-        classes: config.value.classes,
-        keywords: config.value.keywords,
+        ids: toRaw(config.value.ids),
+        classes: toRaw(config.value.classes),
+        keywords: toRaw(config.value.keywords),
         createdAt: config.value.createdAt ? config.value.createdAt : new Date().getTime(),
         updatedAt: new Date().getTime()
       }
@@ -82,11 +93,8 @@ export default {
     }
     // watch customId or  id change; getConfigData
     watchEffect(props.customId, (newValue, oldValue) => {
-      if (newValue === oldValue) {
-        return
-      } else {
-        getConfigData()
-      }
+      console.log('监听到pageid变化，获取config', newValue, oldValue)
+       getConfigData()
     })
     return {
       config,

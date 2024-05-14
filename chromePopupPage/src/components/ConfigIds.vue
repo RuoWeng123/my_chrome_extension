@@ -27,14 +27,22 @@
 </template>
 
 <script>
-import { reactive, watch, toRaw } from 'vue'
+import { reactive, watch, toRaw, onMounted } from 'vue'
 import { ElInput, ElButton, ElIcon } from 'element-plus'
 
 export default {
   name: 'ConfigIds',
-  props: ['ids'],
+  props: {
+    ids: {
+      type: Array,
+      default: () => []
+    }
+  },
   setup(props, { emit }) {
-    const currentIds = reactive(props.ids)
+    const currentIds = reactive([...props.ids])
+    onMounted(() => {
+      console.log('当前版本号 2024-5-14 15:14',)
+    })
     const deleteItem = (index) => {
       currentIds.splice(index, 1)
     }
@@ -42,13 +50,19 @@ export default {
       currentIds.push('')
     }
 
+      // 监听 currentIds 的变化，触发 change 事件
     watch(currentIds, (newValue, oldValue) => {
-      let pushData = toRaw(newValue)
-      let oldData = toRaw(oldValue)
-      if (Array.isArray(pushData)){
-        emit('change', pushData)
-      }
+      emit('change', newValue)
     })
+
+    watch(
+      () => props.ids,
+      (newIds) => {
+        currentIds.splice(0, currentIds.length, ...newIds)
+      },
+      { immediate: true }
+    )
+
     return {
       currentIds,
       deleteItem,
