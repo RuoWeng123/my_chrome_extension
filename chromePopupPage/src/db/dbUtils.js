@@ -112,4 +112,7 @@ const writeDbInStorage = async () =>{
   })
 
   localStorage.setItem('cmict_chrome_extension_db', JSON.stringify(params))
+  chrome.storage.sync.set({ 'cmict_chrome_extension_db': JSON.stringify(params) }, () => {
+    console.log('Configuration saved.');
+  });
 }

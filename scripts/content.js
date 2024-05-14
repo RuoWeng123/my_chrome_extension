@@ -1,43 +1,49 @@
-const targetTitle = '';
-const elIds = [];
-const elClasses = [];
+let targetTitles = [];
+let activeTabId = 0;
+let targetTabIds = [];
+let elIds = [];
+let elClasses = [];
 // 监听来自background.js的消息
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  getIndexDb();
-  if (document.title !== targetTitle) {
-    sendResponse('content.js 收到消息,但是你不是我的目标，我不给你返回消息');
-  } else {
-    // 初始化执行一次
+  if(targetTitles.length === 0 && message.hasOwnProperty('type') && message.type === 'createTab'){
+    let listenTitle = message.listenTitle;
+    activeTabId = message.activeTabId;
+    getIndexDb(listenTitle, activeTabId);
+  }
+  if(message.hasOwnProperty('type') && message.type === 'activeTab' && targetTabIds.includes(message.activeTabId)){
+    console.log('页面重新激活了')
+    activeTabId = message.activeTabId;
     await checkPageStructure();
-    // 后续监听页面url变化后，执行
-    changeUrl()
   }
 });
-const getIndexDb = () =>{
-  chrome.runtime.sendMessage({ action: 'getLocalStorage' }, function(response) {
-    if (response && response.data) {
-      let localStorageData = JSON.parse(response.data);
-      if(localStorageData.length === 0){
-        return;
+// 获取popup.html 传递过来的 localStorage 数据
+const getIndexDb = (listenTitle, activeTabId) =>{
+  chrome.storage.sync.get(['cmict_chrome_extension_db'], async (result) => {
+    if (result && result.cmict_chrome_extension_db) {
+      console.log('cmict localstorage:', result);
+      const pageConfig = JSON.parse(result.cmict_chrome_extension_db);
+      targetTitles = pageConfig.map(item => item.title);
+      elIds = pageConfig[0].config.ids;
+      elClasses =  pageConfig[0].config.classes;
+      
+      if(targetTitles.includes(listenTitle)){
+        // 采用set 避免重复
+        targetTabIds.push(activeTabId);
+        targetTabIds = [...new Set(targetTabIds)];
+        await checkPageStructure();
       }
-      targetTitle = localStorageData[0].title;
-      elIds = localStorageData[0].config.ids;
-      elClasses = localStorageData[0].config.classes;
-      console.log('从 popup.html 获取的 localStorage 数据:', localStorageData);
-    } else {
-      console.log('无法获取 localStorage 数据');
+      // 使用配置项 result.config 进行相应的操作
+    }else{
+      console.log('cmict 自动巡查没有配置，不监听页面')
     }
   });
 }
-// 监测页面路由变化，变化后执行检测页面元素逻辑；
-const changeUrl = () =>{
-  window.onhashchange = async function(){
-    await checkPageStructure();
-  }
-}
+
 const checkPageStructure = async () => {
-  console.log('我要开始检查页面结构了，目标页面是：', targetTitle)
+  console.log('我要开始检查页面结构了，目标页面是：', targetTitles)
+  if(targetTitles.length === 0 || !targetTabIds.includes(activeTabId)) return;
   const targetEls = getTargetEls();
+  if(targetEls.length === 0) return;
   let overlayList = [];
   let beyondList = [];
   for(let targetEl of targetEls){
@@ -95,7 +101,7 @@ const getTargetEls = () => {
       targetEls.push(...els);
     }
   });
-  
+  console.log('检测到页面需要监听的元素：', targetEls)
   return [...new Set(targetEls)];
 };
 const getTargetElParents = (targetEl) => {
