@@ -128,7 +128,7 @@ const changeTab = (tab: any) => {
   padding: 0px 8px;
   .el-tab-pane {
     width: 100%;
-    height: 100%;
+    height: calc(100% - 60px);
     display: flex;
     flex-direction: column;
     justify-content: flex-start;

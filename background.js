@@ -22,6 +22,10 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // tab关闭时，
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   downloadLogToCSV();
+  chrome.tabs.sendMessage(activeInfo.tabId, { type: 'removeTab', activeTabId: tabId }, (response) => {
+    console.log('background 接受到了：',response);
+    // chrome 出于安全考虑，不允许调用chrome.file 否则这里可以用于写文件
+  });
 });
 
 function downloadLogToCSV() {
