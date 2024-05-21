@@ -94,7 +94,10 @@ const fetchLog = async (log) => {
   })
   if (!res) return {
     status: 'error',
-    message: 'fetch error'
+    message: '接口请求失败',
+    boid: log.body.boid,
+    body: log.body,
+    resultData: {str: '接口请求失败'}
   }
   const data = await res.json();
   const result = data.retJSON.result;
@@ -102,13 +105,12 @@ const fetchLog = async (log) => {
 }
 
 const formatErrorLog = (status, message, result, body) =>{
-  const {boid, version, data} = result;
+  const {boid, data} = result;
   return {
     status,
     message,
     boid,
     body,
-    version,
     resultData: data
   }
 }
