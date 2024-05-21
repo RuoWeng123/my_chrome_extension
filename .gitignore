@@ -2,8 +2,8 @@
 ./chromePopupPage/node_modules/
 ./chromePopupPage/.vscode/
 ./chromePopupPage/dist/
-./nodeEnv/node_modules/
-./nodeEnv/package-lock.json
-./test/*.csv
-./test/*.xlsx
-./test/*.http
+localLogs/node_modules/
+localLogs/package-lock.json
+test/*.csv
+test/*.xlsx
+test/*.http

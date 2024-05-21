@@ -2,8 +2,9 @@ import { db } from './db'
 
 export const addPage = async (page) => {
   let params = {
-    constomId: page.constomId,
+    customId: page.customId,
     title: page.title,
+    url: page.url,
     content: page.content,
     createdAt: new Date(),
     updatedAt: new Date()
@@ -14,8 +15,9 @@ export const addPage = async (page) => {
 export const putPage = async (page) => {
   let params = {
     id: page.id,
-    constomId: page.constomId,
+    customId: page.customId,
     title: page.title,
+    url: page.url,
     content: page.content,
     createdAt: page.createdAt,
     updatedAt: new Date()
@@ -29,7 +31,7 @@ export const getPageList = async () => {
   let pageList = await db.pages.toArray()
   if(pageList.length === 0) {
     let initPage = {
-      constomId: '1',
+      customId: '1',
       title: '粤智慧',
       content: '粤智慧是一个处理政务的数据',
       createdAt: new Date(),

@@ -1,0 +1,29 @@
+{
+  "name": "local_http",
+  "version": "1.0.0",
+  "description": "none",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node index.js",
+    "test": "null"
+  },
+  "repository": {
+    "type": "git",
+    "url": "null"
+  },
+  "keywords": [
+    "local",
+    "http",
+    "csv"
+  ],
+  "author": "yi",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "dayjs": "^1.11.11",
+    "iconv-lite": "^0.6.3",
+    "node-fetch": "^3.3.2",
+    "xlsx-js-style": "^1.2.0"
+  }
+}

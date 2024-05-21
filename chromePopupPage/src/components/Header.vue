@@ -12,6 +12,7 @@
         <div class="left">
           <span class="label">监控页面</span>
           <el-input v-model="item.title" style="width: 300px"></el-input>
+          <el-input v-model="item.url" style="width: 400px" placeholder="请输入监听网络的url"></el-input>
           <el-button class="ml32" type="primary" @click="handleSave">保存名称</el-button>
         </div>
 
@@ -60,7 +61,8 @@ const editableTabs = ref([
     id: 0,
     customId: '1',
     title: 'Tab 1',
-    content: 'Tab 1 content'
+    content: 'Tab 1 content',
+    url: 'https://yzh.zszwfw.cn/zs/l-screen/zt/dpzt/service'
   }
 ])
 const allowClose = computed(() => editableTabs.value.length > 1)
@@ -82,7 +84,8 @@ const handleTabsEdit = (targetName: TabPaneName | undefined, action: 'remove' | 
     editableTabs.value.push({
       title: '新页面',
       customId: newTabName,
-      content: '监测页面名称'
+      content: '监测页面名称',
+      url:''
     })
     activeTab.value = newTabName
   } else if (action === 'remove') {

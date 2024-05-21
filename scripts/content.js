@@ -5,7 +5,6 @@ let elIds = [];
 let elClasses = [];
 let mutationObserver = null;
 let debounceTimer;
-let targetDocument = document;
 let timeout = null;
 // 监听来自background.js的消息
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
@@ -29,18 +28,22 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
 const getIndexDb = (listenTitle, activeTabId) => {
   chrome.storage.sync.get(['cmict_chrome_extension_db'], async (result) => {
     if (result && result.cmict_chrome_extension_db) {
-      console.log('cmict localstorage:', result);
+      const pageTitle = document.title;
       const pageConfig = JSON.parse(result.cmict_chrome_extension_db);
       targetTitles = pageConfig.map(item => item.title);
-      elIds = pageConfig[0].config.ids;
-      elClasses = pageConfig[0].config.classes;
+      let targetConfig = pageConfig.find(item => item.title === pageTitle);
+      if(!targetConfig) return;
+      elIds = targetConfig.config.ids;
+      elClasses = targetConfig.config.classes;
 
       if (targetTitles.includes(listenTitle)) {
         // 采用set 避免重复
         targetTabIds.push(activeTabId);
         targetTabIds = [...new Set(targetTabIds)];
         console.log('页面首次加载，开始监听页面')
-        await checkPageStructure();
+        timeout = setTimeout(async () =>{
+          await checkPageStructure();
+        }, 3000)
         listenDomChange();
       }
       // 使用配置项 result.config 进行相应的操作
@@ -58,7 +61,7 @@ const checkPageStructure = async () => {
   let overlayList = [];
   let beyondList = [];
   for (let targetEl of targetEls) {
-    let isOverlay = await checkOverlay(targetEl, targetEl.brothers);
+    let isOverlay = checkOverlay(targetEl, targetEl.brothers);
     if (isOverlay === true) {
       overlayList.push(targetEl);
       continue;
@@ -91,21 +94,21 @@ const downloadLog = (text) => {
 const getTargetEls = () => {
   let targetEls = [];
   elIds.forEach(id => {
-    const el = targetDocument.getElementById(id);
+    const el = document.getElementById(id);
     if (el) {
       let parents = getTargetElParents(el);
-      let brothers = getBrothers(el, parents);
+      let brothers = getBrothers(el);
       el.parents = parents;
       el.brothers = brothers;
       targetEls.push(el);
     }
   });
   elClasses.forEach(className => {
-    const els = targetDocument.getElementsByClassName(className);
+    const els = document.getElementsByClassName(className);
     if (els.length) {
       Array.from(els).forEach(el => {
         let parents = getTargetElParents(el);
-        let brothers = getBrothers(el, parents);
+        let brothers = getBrothers(el);
         el.parents = parents;
         el.brothers = brothers;
       })
@@ -129,55 +132,55 @@ const getTargetElParents = (targetEl) => {
   return [...new Set(elParents)];
 }
 // 从三层父元素上获取兄弟元素 集合
-const getBrothers = (targetEl, parents) => {
-  // 父元素向下寻找3层 所有子元素
+const getBrothers = (targetEl) => {
   const brothers = [];
-  // 寻找3层子元素，递归寻找
-  parents.forEach(parent => {
-    const children = parent.children;
-    if (children.length) {
-      brothers.push(...children);
-      Array.from(children).forEach(child => {
-        if (child.children.length) {
-          brothers.push(...child.children);
-          Array.from(child.children).forEach(grandChild => {
-            if (grandChild.children.length) {
-              brothers.push(...grandChild.children);
-            }
-          });
-        }
-      });
+  Array.from(targetEl.parentElement.children).forEach(brother => {
+    if(brother.textContent.trim() !== targetEl.textContent.trim()){
+      brothers.push(brother);
     }
   });
-  // 将brothers 去重，同时去除目标元素
   return [...new Set(brothers)].filter(brother => brother !== targetEl);
 }
 // 判断元素是否与兄弟元素重叠
+// 实际检查过程中，边界塌陷会导致重叠检查不准确
 const checkOverlay = (targetEl, brothers) => {
-  return new Promise((resolve) => {
-    let isOverlay = false;
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          // 元素与兄弟元素重叠
-          isOverlay = true;
-          break; // 找到重叠即可，跳出循环
-        }
-      }
-      observer.disconnect(); // 停止观察，避免内存泄漏
-      resolve(isOverlay); // 解决 Promise，并传递结果
-    }, {
-      root: targetEl.parentElement,
-      threshold: 1.0,
-    });
-
-    brothers.forEach(brother => {
-      observer.observe(targetEl, {
-        target: brother,
-      });
-    });
-  });
+  let isOverlay = false;
+  for(let brother of brothers){
+    if (isBoundingBoxOverlap(targetEl, brother) || isPixelOverlap(targetEl, brother)) {
+      isOverlay = true;
+      return isOverlay;
+    }
+  }
 };
+// 重叠检查方式1
+function isBoundingBoxOverlap(el1, el2) {
+  const rect1 = el1.getBoundingClientRect();
+  const rect2 = el2.getBoundingClientRect();
+  
+  return !(rect1.right < rect2.left ||
+    rect1.left > rect2.right ||
+    rect1.bottom < rect2.top ||
+    rect1.top > rect2.bottom);
+}
+
+// 重叠检查方式2
+function isPixelOverlap(el1, el2) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  
+  const rect1 = el1.getBoundingClientRect();
+  const rect2 = el2.getBoundingClientRect();
+  
+  const xOverlap = Math.max(0, Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left));
+  const yOverlap = Math.max(0, Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top));
+  
+  const overlapArea = xOverlap * yOverlap;
+  const totalArea = (rect1.width * rect1.height) + (rect2.width * rect2.height);
+  const overlapPercentage = overlapArea / totalArea;
+  
+  return overlapPercentage > 0; // 判断重叠面积是否大于0
+}
+
 // 判断超出父元素
 const checkIsBeyondParents = (targetEl, parentEls) => {
   let isBeyond = false;
@@ -210,26 +213,16 @@ const debounceCheckPageStructure = debounce(checkPageStructure, 2000);
 const listenDomChange = () => {
   // 创建一个 MutationObserver 实例
   mutationObserver = new MutationObserver((mutations) => {
-    console.log('dom发生了变化', mutations)
-    // debounceCheckPageStructure();
+    debounceCheckPageStructure();
   });
 
   // 配置要观察的变动类型
   const config = { attributes: false, childList: true, subtree: true };
-
   // 选择目标节点
-  const iframe = document.getElementById("preview_frame");
-  const targetNode = document.body;
-  if(iframe){
-    const iframeDocument = iframe.contentDocument || iframe.contentWindow.document;
-    targetNode = iframeDocument ? iframeDocument.body : document.body;
-    targetDocument = iframeDocument ? iframeDocument : document
-  }
-
+  const targetNode = document.getElementById('sk_id_layout_grid') || document.body;
   // 开始观察目标节点
   mutationObserver.observe(targetNode, config);
 
   // 你可以在合适的时候停止观察
   // observer.disconnect();
-
 }

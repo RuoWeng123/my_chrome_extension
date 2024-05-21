@@ -1,7 +1,7 @@
 import Dexie from 'dexie'
 export const db = new Dexie('cmict_chrome_extension_db')
 db.version(1).stores({
-  pages: '++id, customId, title, content, createdAt, updatedAt',
+  pages: '++id, customId, title, content, url, createdAt, updatedAt',
   configs: '++id, pageId, ids, classes, keywords, createdAt, updatedAt',
 })
 
