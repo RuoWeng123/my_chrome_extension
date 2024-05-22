@@ -3,6 +3,7 @@ let activeTabId = 0;
 let targetTabIds = [];
 let elIds = [];
 let elClasses = [];
+let keywords = [];
 let mutationObserver = null;
 let debounceTimer;
 let timeout = null;
@@ -35,7 +36,7 @@ const getIndexDb = (listenTitle, activeTabId) => {
       if(!targetConfig) return;
       elIds = targetConfig.config.ids;
       elClasses = targetConfig.config.classes;
-
+      keywords = targetConfig.config.keywords;
       if (targetTitles.includes(listenTitle)) {
         // 采用set 避免重复
         targetTabIds.push(activeTabId);
@@ -115,9 +116,43 @@ const getTargetEls = () => {
       targetEls.push(...els);
     }
   });
+  
+  keywords.forEach(keyword =>{
+    const el = findElementByText(document.body, keyword);
+    if (el) {
+      let parents = getTargetElParents(el);
+      let brothers = getBrothers(el);
+      el.parents = parents;
+      el.brothers = brothers;
+      targetEls.push(el);
+    }
+  })
+  
   console.log('检测到页面需要监听的元素：', targetEls)
   return [...new Set(targetEls)];
 };
+
+/**
+ * 递归查找包含特定文本的元素
+ * @param {Node} node - 当前节点
+ * @param {string} text - 目标文本
+ * @returns {Node|null} - 包含目标文本的节点，若未找到则返回 null
+ */
+const findElementByText = (node, text) => {
+  if (node.nodeType === Node.TEXT_NODE && node.nodeValue.trim() === text) {
+    return node.parentNode;
+  }
+  
+  for (let child of node.childNodes) {
+    let result = findElementByText(child, text);
+    if (result) {
+      return result;
+    }
+  }
+  
+  return null;
+}
+
 const getTargetElParents = (targetEl) => {
   // 向上获取目标 3层父元素
   const elParents = [];

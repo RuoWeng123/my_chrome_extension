@@ -2,13 +2,28 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.tabs.create({ url: './popup/popup.html' });
 });
 
-
+let config = null;
+let listenTitles = [];
+let listenTabIds = new Map();
+chrome.storage.sync.get(['cmict_chrome_extension_db'], async (result) => {
+  if (result && result.cmict_chrome_extension_db) {
+    console.log('background 获取到了配置：', result.cmict_chrome_extension_db);
+    config = JSON.parse(result.cmict_chrome_extension_db);
+    if(config){
+      listenTitles = config.map(item => item.title);
+    }
+  }
+});
 let httpLogs = new Map();
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && tab.status === 'complete') {
     chrome.tabs.sendMessage(tab.id, { type: 'createTab', listenTitle: tab.title, activeTabId: tab.id }, (response) => {
-      console.log('background 接受到了：',response);
-      // chrome 出于安全考虑，不允许调用chrome.file 否则这里可以用于写文件
+      if(listenTitles.includes(tab.title)){
+        listenTabIds.set(tab.id, tab.title);
+        if(!httpLogs.has(tab.id)){
+          // httpLogs.set(tab.id, [])
+        }
+      }
     });
   }
 });
@@ -22,7 +37,10 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 // tab关闭时，
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   console.log('tabId:', tabId, 'removeInfo:', removeInfo)
-  downloadLogToCSV();
+  if(listenTabIds.get(tabId)){
+    downloadLogToCSV();
+    listenTabIds.delete(tabId);
+  }
   chrome.tabs.sendMessage(activeInfo.tabId, { type: 'removeTab', activeTabId: tabId }, (response) => {
     console.log('background 接受到了：',response);
     // chrome 出于安全考虑，不允许调用chrome.file 否则这里可以用于写文件
@@ -68,6 +86,7 @@ function downloadLogToCSV() {
 // 监听以特定 URL 开头的网络请求
 chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
+    console.log('监听到网络请求:', details);
     // 检查请求的 URL 是否以指定的前缀开头
     if (details.url.startsWith('https://yzh.zszwfw.cn') && details.url.endsWith('requestdata')) {
      // TODO 这里应该用map
