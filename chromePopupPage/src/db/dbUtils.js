@@ -107,6 +107,7 @@ const writeDbInStorage = async () =>{
     return {
       id: item.id,
       customId: item.customId,
+      url: item.url,
       title: item.title,
       content: item.content,
       config: config

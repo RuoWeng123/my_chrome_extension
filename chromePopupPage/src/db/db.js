@@ -9,6 +9,7 @@ db.on('populate',function(transaction){
   transaction.pages.add({
     customId: '1',
     title: '粤智慧',
+    url:'https://yzh.zszwfw.cn/*',
     content: '粤智慧是一个处理政务的数据',
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -40,7 +40,7 @@ function downloadLogToCSV() {
     csvContent += csvLine;
   });
 
-  const fileName = `appcube_httpLogs_${new Date().getTime()}.csv`;
+  const fileName = `input_httpLogs_${new Date().getTime()}.csv`;
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   // 准备下载
   const reader = new FileReader();

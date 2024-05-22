@@ -20,7 +20,7 @@ const __dirname = dirname(__filename);
 async function getHttpLogs() {
   const testDir = path.join(__dirname, '../../test');
   const files = await readdir(testDir);
-  const csvFiles = files.filter(file => file.startsWith('appcube_httpLogs_'));
+  const csvFiles = files.filter(file => file.startsWith('input_httpLogs_'));
   let httpLogs = [];
   for (const file of csvFiles) {
     const filePath = path.join(testDir, file);
@@ -33,7 +33,7 @@ async function getHttpLogs() {
 async function requestHttpLogs() {
   await initConfig();
   let httpLogs = await getHttpLogs();
-  await removeFileByStartString('xlsx_httpLogs_');
+  await removeFileByStartString('output_httpLogs_');
   let csvContent = "boid,body,status,message, resultData\n";
   let logList = [];
   for (let log of httpLogs) {
@@ -50,7 +50,7 @@ async function requestHttpLogs() {
   // const fileName = `nodeEnv_httpLogs_${dayjs().format('YYYY-MM-DD_HH:mm')}.csv`;
   // const filePath = path.join(__dirname, `../../test/${fileName}`);
   // await writeCSV(csvContent, filePath);
-  const fileNameXLSX = `xlsx_httpLogs_${dayjs().format('YYYY-MM-DD_HH:mm')}.xlsx`;
+  const fileNameXLSX = `output_httpLogs_${dayjs().format('YYYY-MM-DD_HH:mm')}.xlsx`;
   const filePathXLSX = path.join(__dirname, `../../test/${fileNameXLSX}`);
   await writeLog(logList, filePathXLSX);
 }
@@ -85,8 +85,8 @@ const fetchLog = async (log) => {
   let res = await fetch('https://172.29.0.187:443/iocpublic/postbojson_fun', {
     method: 'POST',
     headers: {
-      'X-HW-ID': '0cd6cb33-ed3b-4de6-9229-03a0817e3d42',
-      'X-HW-APPKEY': '31ca93919ccd8f588e9a7e25f38695b3706b3835407994e583124110deb053e5',
+      'X-HW-ID': '-9229-03a0817e3d42',
+      'X-HW-APPKEY': '8f588e9a7e25f38695b3706b3835407994e583124110deb053e5',
       'Content-Type': 'application/json'
     },
     agent: agent,
