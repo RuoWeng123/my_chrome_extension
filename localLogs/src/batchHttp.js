@@ -34,14 +34,15 @@ async function requestHttpLogs() {
   await initConfig();
   let httpLogs = await getHttpLogs();
   await removeFileByStartString('output_httpLogs_');
-  let csvContent = "boid,body,status,message, resultData\n";
+  // let csvContent = "boid,body,status,message, resultData\n";
   let logList = [];
   for (let log of httpLogs) {
     const httpRes = await fetchLog(log);
-    csvContent += `${httpRes.boid},"${log.body.replace(/"/g, '""')}",${httpRes.status},${httpRes.message},"${JSON.stringify(httpRes.resultData).replace(/"/g, '""')}"\n`;
+    // csvContent += `${httpRes.boid},"${log.body.replace(/"/g, '""')}",${httpRes.status},${httpRes.message},"${JSON.stringify(httpRes.resultData).replace(/"/g, '""')}"\n`;
     logList.push({
       boid: httpRes.boid,
       body: log.body,
+      pageTitle: log.tabTitle,
       status: httpRes.status,
       message: httpRes.message,
       resultData: httpRes.resultData
@@ -85,22 +86,22 @@ const fetchLog = async (log) => {
   let res = await fetch('https://172.29.0.187:443/iocpublic/postbojson_fun', {
     method: 'POST',
     headers: {
-      'X-HW-ID': '-9229-03a0817e3d42',
-      'X-HW-APPKEY': '8f588e9a7e25f38695b3706b3835407994e583124110deb053e5',
+      'X-HW-ID': '0cd6cb33-ed3b-4de6-9229-03a0817e3d42',
+      'X-HW-APPKEY': '31ca93919ccd8f588e9a7e25f38695b3706b3835407994e583124110deb053e5',
       'Content-Type': 'application/json'
     },
     agent: agent,
-    body: JSON.stringify(log.body)
+    body: JSON.stringify(JSON.parse(log.body))
   })
-  if (!res) return {
+  const data = await res.json();
+  const result = data.retJSON.result;
+  if (!res || !data || !result) return {
     status: 'error',
     message: '接口请求失败',
     boid: log.body.boid,
-    body: log.body,
+    body: JSON.parse(log.body),
     resultData: {str: '接口请求失败'}
   }
-  const data = await res.json();
-  const result = data.retJSON.result;
   return checkResult(result);
 }
 

@@ -3,7 +3,7 @@
     <div class="top_list">
       <div v-if="currentKeywords.length > 0">
         <div v-for="(item, index) in currentKeywords" :key="index" class="item_id">
-          <el-input v-model="currentKeywords[index]" placeholder="输入id" />
+          <el-input v-model="currentKeywords[index]" placeholder="输入监测字段（不支持模糊匹配）" />
           <el-button type="warning" class="ml14" @click="deleteItem(index)">
             <el-icon>
               <Delete />

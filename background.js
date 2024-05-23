@@ -5,32 +5,40 @@ chrome.action.onClicked.addListener((tab) => {
 let config = null;
 let listenTitles = [];
 let listenTabIds = new Map();
+let httpLogs = new Map();
+let urls = [];
+let urlsMap = new Map();
 chrome.storage.sync.get(['cmict_chrome_extension_db'], async (result) => {
   if (result && result.cmict_chrome_extension_db) {
     console.log('background 获取到了配置：', result.cmict_chrome_extension_db);
     config = JSON.parse(result.cmict_chrome_extension_db);
     if(config){
       listenTitles = config.map(item => item.title);
+      urls = config.map(item => item.url);
     }
   }
 });
-let httpLogs = new Map();
+// tab 更新时,初始打开
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && tab.status === 'complete') {
     chrome.tabs.sendMessage(tab.id, { type: 'createTab', listenTitle: tab.title, activeTabId: tab.id }, (response) => {
       if(listenTitles.includes(tab.title)){
         listenTabIds.set(tab.id, tab.title);
+        let currentConfig = config.find(item => item.title === tab.title);
+        if(currentConfig){
+          urlsMap.set(tab.id, currentConfig.url);
+        }
         if(!httpLogs.has(tab.id)){
-          // httpLogs.set(tab.id, [])
+          httpLogs.set(tab.id, new Map())
         }
       }
     });
   }
 });
+// tab切换时
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.sendMessage(activeInfo.tabId, { type: 'activeTab', activeTabId: activeInfo.tabId }, (response) => {
     console.log('background 接受到了：',response);
-    // chrome 出于安全考虑，不允许调用chrome.file 否则这里可以用于写文件
   });
 });
 
@@ -38,26 +46,37 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   console.log('tabId:', tabId, 'removeInfo:', removeInfo)
   if(listenTabIds.get(tabId)){
-    downloadLogToCSV();
-    listenTabIds.delete(tabId);
+    downloadLogToCSV(tabId);
   }
   chrome.tabs.sendMessage(activeInfo.tabId, { type: 'removeTab', activeTabId: tabId }, (response) => {
     console.log('background 接受到了：',response);
-    // chrome 出于安全考虑，不允许调用chrome.file 否则这里可以用于写文件
   });
 });
+// chrome 整体关闭
+chrome.windows.onRemoved.addListener((windowId) => {
+  chrome.windows.getAll({}, function(windows){
+    if(windows.length === 0 && listenTabIds.size > 0){
+      listenTabIds.forEach((value, key) => {
+        downloadLogToCSV(key);
+      })
+    }
+  })
+})
 
-function downloadLogToCSV() {
+function downloadLogToCSV(tabId) {
   if(httpLogs.size === 0) return;
-  const logsArray = Array.from(httpLogs.values());
-  let csvContent = "body,method,boid\n"; // CSV 表头
+  if(!httpLogs.has(tabId)){
+    return;
+  }
+  const logsArray = Array.from(httpLogs.get(tabId).values());
+  let tabTitle = listenTabIds.get(tabId);
+  let csvContent = "body,method,boid,tabTitle\n"; // CSV 表头
   
   logsArray.forEach(log => {
     const { body, method } = log;
-    const csvLine = `"${body.replace(/"/g, '""')}",${method},${body.boid}\n`; // 处理特殊字符和引号
+    const csvLine = `"${JSON.stringify(body).replace(/"/g, '""')}",${method},${body.boid},${tabTitle}\n`; // 处理特殊字符和引号
     csvContent += csvLine;
   });
-
   const fileName = `input_httpLogs_${new Date().getTime()}.csv`;
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   // 准备下载
@@ -80,46 +99,25 @@ function downloadLogToCSV() {
   };
   reader.readAsDataURL(blob);
   
-  httpLogs.clear();
+  listenTabIds.delete(tabId);
+  httpLogs.delete(tabId);
 }
 
 // 监听以特定 URL 开头的网络请求
+// chrome80后沙盒机制，不允许获取请求的body，所以不监听 chrome.webRequest.onCompleted
 chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
-    console.log('监听到网络请求:', details);
-    // 检查请求的 URL 是否以指定的前缀开头
-    if (details.url.startsWith('https://yzh.zszwfw.cn') && details.url.endsWith('requestdata')) {
-     // TODO 这里应该用map
-      // 这里示例输出请求信息到控制台
-      // console.log('请求方法:', details.method);
-      // console.log('请求details:', details);
+    let currentUrl = urlsMap.get(details.tabId);
+    if (details.url.startsWith(currentUrl) && details.url.endsWith('requestdata')) {
       let requestBody = details.requestBody.raw && details.requestBody.raw[0].bytes;
       const decoder = new TextDecoder('utf-8');
       const responseText = decoder.decode(requestBody);
       const httpBody = JSON.parse(responseText);
-      console.log('监听到网络',httpBody);
-      httpLogs.set(httpBody.boid, {body: responseText, method: details.method, url: details.url});
-       // console.log('请求头',responseText);
-      // httpLogs = Array.from(new Set([...httpLogs, responseText]))
-      // 返回 { cancel: false } 表示继续原始请求
+      httpLogs.get(details.tabId).set(httpBody.boid, {body: httpBody, method: details.method, url: details.url});
       return { cancel: false };
     }
   },
-  { urls: ['https://yzh.zszwfw.cn/*'] }, // 监听以指定 URL 开头的请求
+  { urls: urls }, // 监听以指定 URL 开头的请求
   ['requestBody'] // 使用阻塞模式，需要返回一个对象
 );
 
-// 监听返回的网络请求
-chrome.webRequest.onCompleted.addListener(
-  function(details) {
-    // 检查请求的 URL 是否以指定的前缀开头
-    if (details.url.startsWith('https://yzh.zszwfw.cn/zs') && details.url.endsWith('requestdata')) {
-      // console.log('监听到返回的请求:', details.url);
-      // console.log('返回details:', details);
-      // 返回 { cancel: false } 表示继续原始请求
-      return { cancel: false };
-    }
-  },
-  { urls: ['https://yzh.zszwfw.cn/zs/*'] }, // 监听以指定 URL 开头的请求
-  ['responseHeaders']
-);

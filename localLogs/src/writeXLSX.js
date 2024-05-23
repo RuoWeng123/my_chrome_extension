@@ -16,10 +16,14 @@ function createWorkbookWithStyles(data) {
 
 export const writeLog = async (data, filePath) => {
   let xlsxData = [
-    [{value: 'boid', style: {}}, {value: 'body', style: {}}, {value: 'status', style: {}}, {
-      value: 'message',
-      style: {}
-    }, {value: 'resultData', style: {}}],
+    [
+      {value: 'boid', style: {}},
+      {value: '页面标题', style: {}},
+      {value: 'body', style: {}},
+      {value: 'status', style: {}},
+      {value: 'message', style: {}},
+      {value: 'resultData', style: {}}
+    ],
   ];
   data.forEach(item => {
     let cellStyle = item.status === 'error' ? {
@@ -28,10 +32,11 @@ export const writeLog = async (data, filePath) => {
     } : {alignment: {wrapText: true, vertical: 'top'}};
     xlsxData.push([
       {value: item.boid, style: cellStyle},
-      {value: item.body.replace(/"/g, '""'), style: cellStyle},
+      {value: item.pageTitle, style: cellStyle},
+      {value: item.body, style: cellStyle},
       {value: item.status, style: cellStyle},
       {value: item.message, style: cellStyle},
-      {value: JSON.stringify(item.resultData).replace(/"/g, '""'), style: cellStyle},
+      {value: JSON.stringify(item.resultData), style: cellStyle},
     ]);
   })
   const wb = createWorkbookWithStyles(xlsxData);

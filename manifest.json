@@ -12,7 +12,8 @@
     "tabs",
     "scripting",
     "activeTab",
-    "downloads"
+    "downloads",
+    "windows"
   ],
   "host_permissions": [
     "https://yzh.zszwfw.cn/zs/*"
