@@ -33,10 +33,10 @@ export const writeLog = async (data, filePath) => {
     xlsxData.push([
       {value: item.boid, style: cellStyle},
       {value: item.pageTitle, style: cellStyle},
-      {value: item.body, style: cellStyle},
+      {value: JSON.stringify(item.body), style: cellStyle},
       {value: item.status, style: cellStyle},
       {value: item.message, style: cellStyle},
-      {value: JSON.stringify(item.resultData), style: cellStyle},
+      {value: JSON.stringify(item.resultData).substring(0, 8000), style: cellStyle},
     ]);
   })
   const wb = createWorkbookWithStyles(xlsxData);

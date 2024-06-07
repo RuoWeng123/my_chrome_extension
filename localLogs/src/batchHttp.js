@@ -18,9 +18,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function getHttpLogs() {
-  const testDir = path.join(__dirname, '../../test');
+  const testDir = path.join(__dirname, '../input');
   const files = await readdir(testDir);
-  const csvFiles = files.filter(file => file.startsWith('input_httpLogs_'));
+  const csvFiles = files.filter(file => file.startsWith('input_httpLogs_') && file.endsWith('.csv'));
   let httpLogs = [];
   for (const file of csvFiles) {
     const filePath = path.join(testDir, file);
@@ -34,30 +34,26 @@ async function requestHttpLogs() {
   await initConfig();
   let httpLogs = await getHttpLogs();
   await removeFileByStartString('output_httpLogs_');
-  // let csvContent = "boid,body,status,message, resultData\n";
   let logList = [];
-  for (let log of httpLogs) {
-    const httpRes = await fetchLog(log);
-    // csvContent += `${httpRes.boid},"${log.body.replace(/"/g, '""')}",${httpRes.status},${httpRes.message},"${JSON.stringify(httpRes.resultData).replace(/"/g, '""')}"\n`;
+  for (let item of httpLogs) {
+    item.body = JSON.parse(item.body.replace(/￥/g, ','))
+    const httpRes = await fetchLog(item);
     logList.push({
       boid: httpRes.boid,
-      body: log.body,
-      pageTitle: log.tabTitle,
+      body: item.body,
+      pageTitle: item.tabTitle ? item.tabTitle : '未知',
       status: httpRes.status,
       message: httpRes.message,
       resultData: httpRes.resultData
     })
   }
-  // const fileName = `nodeEnv_httpLogs_${dayjs().format('YYYY-MM-DD_HH:mm')}.csv`;
-  // const filePath = path.join(__dirname, `../../test/${fileName}`);
-  // await writeCSV(csvContent, filePath);
-  const fileNameXLSX = `output_httpLogs_${dayjs().format('YYYY-MM-DD_HH:mm')}.xlsx`;
-  const filePathXLSX = path.join(__dirname, `../../test/${fileNameXLSX}`);
+  const fileNameXLSX = `output_httpLogs_${dayjs().format('YYYY-MM-DD')}.xlsx`;
+  const filePathXLSX = path.join(__dirname, `../output/${fileNameXLSX}`);
   await writeLog(logList, filePathXLSX);
 }
 
 const removeFileByStartString = async (startString) => {
-  const testDir = path.join(__dirname, '../../test');
+  const testDir = path.join(__dirname, '../output');
   const files = await readdir(testDir);
   const csvFiles = files.filter(file => file.startsWith(startString) && file.endsWith('.xlsx'));
   for (const file of csvFiles) {
@@ -83,6 +79,7 @@ const fetchLog = async (log) => {
   const agent = new https.Agent({
     rejectUnauthorized: false
   });
+  const {body} = log;
   let res = await fetch('https://172.29.0.187:443/iocpublic/postbojson_fun', {
     method: 'POST',
     headers: {
@@ -91,7 +88,7 @@ const fetchLog = async (log) => {
       'Content-Type': 'application/json'
     },
     agent: agent,
-    body: JSON.stringify(JSON.parse(log.body))
+    body: JSON.stringify(body)
   })
   const data = await res.json();
   const result = data.retJSON.result;
@@ -118,29 +115,29 @@ const formatErrorLog = (status, message, result, body) =>{
 const checkResult = (result, body) => {
   const {boid, version, data} = result;
   
-  if (!data.datarow) {
+  if (!data.datarow0) {
     return formatErrorLog('error', 'data is error', result, body)
   }
-  if (checkDataNotArray(data.datarow)) {
+  if (checkDataNotArray(data.datarow0)) {
     return formatErrorLog('error', 'data is not array', result, body)
   }
-  if (checkDataIsArrayEmpty(data.datarow)) {
+  if (checkDataIsArrayEmpty(data.datarow0)) {
     return formatErrorLog('error', 'data is array empty', result, body)
   }
-  if (checkDataIsFalse(data.datarow)) {
+  if (checkDataIsFalse(data.datarow0)) {
     return formatErrorLog('error', 'data is false', result, body)
   }
-  if (checkDataIsNull(data.datarow)) {
+  if (checkDataIsNull(data.datarow0)) {
     return formatErrorLog('error', 'data is null', result, body)
   }
-  if (checkDataHaveZero(data.datarow, boid)) {
+  if (checkDataHaveZero(data.datarow0, boid)) {
     return formatErrorLog('error', 'data have 0', result, body)
   }
   
-  if (checkDataIsRange(data.datarow, boid)) {
+  if (checkDataIsRange(data.datarow0, boid)) {
     return formatErrorLog('error', 'data is range', result, body)
   }
-  if (checkIsContinue(data.datarow, boid)) {
+  if (checkIsContinue(data.datarow0, boid)) {
     return formatErrorLog('error', 'data is not continue', result, body)
   }
   
@@ -150,7 +147,7 @@ const checkResult = (result, body) => {
     boid,
     body,
     version,
-    resultData: data
+    resultData: data.datarow0
   }
 }
 

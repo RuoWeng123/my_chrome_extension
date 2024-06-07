@@ -20,6 +20,7 @@ import { getConfigByPageId, putConfig, addConfig } from '../db/dbUtils'
 import ConfigIds from './ConfigIds.vue'
 import ConfigClasses from './ConfigClasses.vue'
 import ConfigKeywords from './ConfigKeywords.vue'
+import { ElMessage } from 'element-plus'
 export default {
   props: ['customId', 'pageId', 'title', 'content'],
   components: {
@@ -71,6 +72,10 @@ export default {
       } else {
         addConfig(confitParams)
       }
+      ElMessage({
+        message: '保存成功',
+        type: 'success',
+      })
     }
 
     const onChangeIds = (ids) => {

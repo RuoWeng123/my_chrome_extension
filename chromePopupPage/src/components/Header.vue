@@ -1,77 +1,82 @@
 <template>
-  <el-tabs v-model="activeTab" type="card" editable class="demo-tabs" @edit="handleTabsEdit">
-    <el-tab-pane
-      v-for="item in editableTabs"
-      :key="item.customId"
-      :label="item.title"
-      :name="item.customId"
-      :closeable="allowClose"
-      @tabChange="changeTab"
-    >
-      <div class="name_area">
-        <div class="left">
-          <span class="label">监控页面</span>
-          <el-input v-model="item.title" style="width: 300px"></el-input>
-          <el-input v-model="item.url" style="width: 400px;margin-left:20px;" placeholder="请输入监听网络的url"></el-input>
-          <el-button class="ml32" type="primary" @click="handleSave">保存名称</el-button>
-        </div>
-
-        <el-popover
-          :width="300"
-          popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 20px;"
-        >
-          <template #reference>
-            <el-icon :size="22">
-              <HelpFilled />
-            </el-icon>
-          </template>
-          <template #default>
-            <div>
-              <p>要求修改完名称后，点击一次“保存名称”</p>
-              <p>id监听一个目标对象</p>
-              <p>class监听一群目标对象</p>
-              <p>文本内容监听头部匹配命中的对象</p>
-              <p>xuyangyang2@cmict.com</p>
-            </div>
-          </template>
-        </el-popover>
+  <div class="container">
+    <div class="url_container">
+      <div class="left">
+        <span class="urlLabelStart">检测路由头</span>
+        <el-input v-model="listenUrlStart" style="width: 400px;margin-left:20px;"
+          placeholder="请输入监听网络的url"></el-input>
+        <span class="urlLabelEnd">检测路由尾</span>
+        <el-input v-model="listenUrlEnd" style="width: 200px;margin-left:20px;"
+          placeholder="请输入监听网络的url"></el-input>
+        <el-checkbox class="ml16" v-model="isGlobalListenUrl" label="全局模糊匹配" title="开启后，监听url时，不与下面配置取交集了"/>
       </div>
-      <PageConfig
-        class="ex_container"
-        :pageId="item.id"
-        :customId="item.customId"
-        :title="item.title"
-        :content="item.content"
-      />
-    </el-tab-pane>
-  </el-tabs>
+      <div class="action">
+        <el-button class="ml32" type="primary" @click="onSaveUrl">保存路由配置</el-button>
+      </div>
+    </div>
+    <div class="config_container">
+      <div class="left_tabs">
+        <div class="item_tab" v-for="item in editableTabs" :key="item.customId" @click="onActiveTab(item)">
+          <span class="label">{{ item.title }}</span>
+          <el-icon class="item_icon" v-if="allowClose" @click="handleTabsEdit(item.customId, 'remove')">
+            <CloseBold />
+          </el-icon>
+        </div>
+        <el-button type="primary" @click="handleTabsEdit(null, 'add')">新增监控页面</el-button>
+      </div>
+      <div class="right_tab_config_null" v-if="!activeTab">
+        <span>请点击左侧监控页面进行配置</span>
+      </div>
+      <div class="right_tab_config" v-if="activeTab">
+        <div class="name_area">
+          <span class="label">监控页面</span>
+          <el-input v-model="activeTab.title" style="width: 300px"></el-input>
+        </div>
+        <PageConfig
+          class="ex_container"
+          :pageId="activeTab.id"
+          :customId="activeTab.customId"
+          :title="activeTab.title"
+          :content="activeTab.content"
+        />
+      </div>
+    </div>
+
+  </div>
+
 </template>
 
 <script lang="ts" setup>
 import { ref, computed, onMounted } from 'vue'
 import type { TabPaneName } from 'element-plus'
-import { ElInput, ElTabs, ElTabPane } from 'element-plus'
-import { getPageList, putPage, addPage } from '../db/dbUtils'
+import { ElInput, ElMessage } from 'element-plus'
+import { getPageList, putPage, addPage, putUrl, getUrlById } from '../db/dbUtils'
 import PageConfig from '../components/PageConfig.vue'
 
 let tabIndex = 1
-const activeTab = ref(null)
+const listenUrlStart = ref('https://yzh.zszwfw.cn/')
+const listenUrlEnd = ref('/requestdata')
+const isGlobalListenUrl = ref(true)
 const editableTabs = ref([
   {
     id: 0,
     customId: '1',
     title: 'Tab 1',
-    content: 'Tab 1 content',
-    url: 'https://yzh.zszwfw.cn/zs/l-screen/zt/dpzt/service'
+    content: 'Tab 1 content'
   }
 ])
+const activeTab = ref(null)
 const allowClose = computed(() => editableTabs.value.length > 1)
 onMounted(async () => {
   let pageList = await initPageList()
-  if(pageList.length === 0) {
+  let dbUrl = await getUrlById(1)
+  listenUrlStart.value = dbUrl.urlStart
+  listenUrlEnd.value = dbUrl.urlEnd
+  isGlobalListenUrl.value = dbUrl.isGlobalListen
+  if (pageList.length === 0) {
     return
   }
-  activeTab.value = pageList[0].customId
+  activeTab.value = pageList[0]
 })
 const initPageList = async () => {
   let pageList = await getPageList()
@@ -85,8 +90,7 @@ const handleTabsEdit = (targetName: TabPaneName | undefined, action: 'remove' | 
       id: undefined,
       title: '新页面',
       customId: newTabName,
-      content: '监测页面名称',
-      url:''
+      content: '监测页面名称'
     })
     activeTab.value = newTabName
   } else if (action === 'remove') {
@@ -119,45 +123,126 @@ const handleSave = async () => {
   }
 }
 
-const changeTab = (tab: any) => {
-  console.log(tab)
-  //
+const onActiveTab = (tab: any) => {
+  activeTab.value = tab
+}
+
+const onSaveUrl = async () => {
+  await putUrl({
+    id: 1,
+    urlStart: listenUrlStart.value,
+    urlEnd: listenUrlEnd.value,
+    isGlobalListen: isGlobalListenUrl.value,
+    createdAt: new Date().getTime(),
+    updatedAt: new Date().getTime()
+  })
+
+  alert('success')
 }
 </script>
 
 <style lang="less">
-.demo-tabs > .el-tabs__content {
+.container {
   width: 100%;
-  height: 100%;
-  padding: 0px 8px;
-  .el-tab-pane {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  .url_container {
+    width: 100%;
+    height: 60px;
+    display: inline-flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+
+    .left{
+      display: inline-flex;
+      flex-direction: row;
+      align-items: center;
+    }
+
+    .urlLabelStart {
+      margin-right: 10px;
+    }
+
+    .urlLabelEnd {
+      margin-right: 10px;
+      margin-left: 16px;
+    }
+  }
+
+  .config_container {
     width: 100%;
     height: calc(100% - 60px);
     display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    .name_area {
-      padding: 0px 0px 14px 0px;
-      border-bottom: 1px solid #dbd3d3;
-      display: flex;
-      flex-direction: row;
-      justify-content: space-between;
-      align-items: center;
-      .left {
-        width: 80%;
+    flex-direction: row;
+    justify-content: space-between;
+    border-top: 1px solid #d3d3d3;
+
+    .left_tabs {
+      width: 200px;
+      height: 100%;
+      display: inline-flex;
+      flex-direction: column;
+      border-right: 1px solid #dbd3d3;
+      padding: 8px 12px;
+
+      .item_tab {
+        width: 100%;
+        display: inline-flex;
+        justify-content: space-between;
+        padding: 4px 10px;
+        background: #dbd3d3;
+        margin-bottom: 12px;
+        border-radius: 6px;
 
         .label {
           margin-right: 10px;
         }
+
+        .item_icon {
+          width: 32px;
+          height: 32px;
+        }
+      }
+
+      &:hover {
+        background: #dbd3d3;
+      }
+    }
+
+    .right_tab_config {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+
+      .name_area {
+        padding: 10px 0px 14px 10px;
+        border-bottom: 1px solid #dbd3d3;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+
+        .label {
+          margin-right: 10px;
+        }
+
         .ml32 {
           margin-left: 32px;
         }
       }
-    }
 
-    .ex_container {
-      flex: 1;
+      .ex_container {
+        flex: 1;
+      }
     }
   }
+}
+
+.ml16{
+  margin-left: 16px;
 }
 </style>

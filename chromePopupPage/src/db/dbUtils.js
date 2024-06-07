@@ -4,7 +4,6 @@ export const addPage = async (page) => {
   let params = {
     customId: page.customId,
     title: page.title,
-    url: page.url,
     content: page.content,
     createdAt: new Date(),
     updatedAt: new Date()
@@ -17,7 +16,6 @@ export const putPage = async (page) => {
     id: page.id,
     customId: page.customId,
     title: page.title,
-    url: page.url,
     content: page.content,
     createdAt: page.createdAt,
     updatedAt: new Date()
@@ -95,6 +93,30 @@ export const removePage = async (pageId) => {
   }
 }
 
+export const putUrl = async (url) => {
+  let params = {
+    id: url.id,
+    urlStart: url.urlStart,
+    urlEnd: url.urlEnd,
+    isGlobalListen: url.isGlobalListen,
+    createdAt: url.createdAt,
+    updatedAt: new Date()
+  }
+  const res = await db.urls.update(params.id, params)
+  if(res){
+    const url = await getUrlById(1)
+    
+    localStorage.setItem('cmict_chrome_extension_db_url', JSON.stringify(url))
+    // eslint-disable-next-line no-undef
+    chrome.storage.sync.set({ 'cmict_chrome_extension_db_url': JSON.stringify(url) }, () => {
+      console.log('Configuration saved.');
+    });
+  }
+}
+export const getUrlById = async (id) => {
+  return await db.urls.get({ id })
+}
+
 const writeDbInStorage = async () =>{
   let pages = await getPageList()
   const configs = await getConfigList()
@@ -107,7 +129,6 @@ const writeDbInStorage = async () =>{
     return {
       id: item.id,
       customId: item.customId,
-      url: item.url,
       title: item.title,
       content: item.content,
       config: config
@@ -115,6 +136,7 @@ const writeDbInStorage = async () =>{
   })
 
   localStorage.setItem('cmict_chrome_extension_db', JSON.stringify(params))
+  // eslint-disable-next-line no-undef
   chrome.storage.sync.set({ 'cmict_chrome_extension_db': JSON.stringify(params) }, () => {
     console.log('Configuration saved.');
   });

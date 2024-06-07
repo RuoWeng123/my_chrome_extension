@@ -16,7 +16,8 @@
     "windows"
   ],
   "host_permissions": [
-    "https://yzh.zszwfw.cn/zs/*"
+      "https://yzh.zszwfw.cn/zs/*",
+		  "https://appcube.zszwfw.cn/*"
   ],
   "action": {
     "default_icon": "images/cmict.png"

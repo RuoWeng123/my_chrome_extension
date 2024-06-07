@@ -2,32 +2,35 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.tabs.create({ url: './popup/popup.html' });
 });
 
-let config = null;
 let listenTitles = [];
 let listenTabIds = new Map();
 let httpLogs = new Map();
-let urls = [];
-let urlsMap = new Map();
+let dbUrl = {
+  urlStart: 'https://appcube.zszwfw.cn/*'
+};
+// 监听tab 的title
 chrome.storage.sync.get(['cmict_chrome_extension_db'], async (result) => {
   if (result && result.cmict_chrome_extension_db) {
     console.log('background 获取到了配置：', result.cmict_chrome_extension_db);
     config = JSON.parse(result.cmict_chrome_extension_db);
-    if(config){
+    if (config) {
       listenTitles = config.map(item => item.title);
-      urls = config.map(item => item.url);
     }
+  }
+});
+// 获取配置url
+chrome.storage.sync.get(['cmict_chrome_extension_db_url'], async (result) => {
+  if (result && result.cmict_chrome_extension_db_url) {
+    console.log('background 获取到了URL配置：', result.cmict_chrome_extension_db_url);
+    dbUrl = JSON.parse(result.cmict_chrome_extension_db_url);
   }
 });
 // tab 更新时,初始打开
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (tab.active && tab.status === 'complete') {
     chrome.tabs.sendMessage(tab.id, { type: 'createTab', listenTitle: tab.title, activeTabId: tab.id }, (response) => {
-      if(listenTitles.includes(tab.title)){
-        listenTabIds.set(tab.id, tab.title);
-        let currentConfig = config.find(item => item.title === tab.title);
-        if(currentConfig){
-          urlsMap.set(tab.id, currentConfig.url);
-        }
+      if(listenTitles.includes(tab.title) || (dbUrl.isGlobalListen && tab.url.startsWith(dbUrl.urlStart)) ){
+        listenTabIds.set(tab.id, {title: tab.title, url: tab.url});
         if(!httpLogs.has(tab.id)){
           httpLogs.set(tab.id, new Map())
         }
@@ -48,33 +51,22 @@ chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   if(listenTabIds.get(tabId)){
     downloadLogToCSV(tabId);
   }
-  chrome.tabs.sendMessage(activeInfo.tabId, { type: 'removeTab', activeTabId: tabId }, (response) => {
+  chrome.tabs.sendMessage(removeInfo.tabId, { type: 'removeTab', activeTabId: tabId }, (response) => {
     console.log('background 接受到了：',response);
   });
 });
-// chrome 整体关闭
-chrome.windows.onRemoved.addListener((windowId) => {
-  chrome.windows.getAll({}, function(windows){
-    if(windows.length === 0 && listenTabIds.size > 0){
-      listenTabIds.forEach((value, key) => {
-        downloadLogToCSV(key);
-      })
-    }
-  })
-})
+
 
 function downloadLogToCSV(tabId) {
   if(httpLogs.size === 0) return;
   if(!httpLogs.has(tabId)){
     return;
   }
-  const logsArray = Array.from(httpLogs.get(tabId).values());
   let tabTitle = listenTabIds.get(tabId);
-  let csvContent = "body,method,boid,tabTitle\n"; // CSV 表头
+  let csvContent = "body, tabTitle, boid, \n"; // CSV 表头
   
-  logsArray.forEach(log => {
-    const { body, method } = log;
-    const csvLine = `"${JSON.stringify(body).replace(/"/g, '""')}",${method},${body.boid},${tabTitle}\n`; // 处理特殊字符和引号
+  httpLogs.get(tabId).forEach((value, key) => {
+    const csvLine = `"${JSON.stringify(value).replace(/,/g, '￥')}", ${tabTitle.title}, ${key}\n`;
     csvContent += csvLine;
   });
   const fileName = `input_httpLogs_${new Date().getTime()}.csv`;
@@ -107,17 +99,17 @@ function downloadLogToCSV(tabId) {
 // chrome80后沙盒机制，不允许获取请求的body，所以不监听 chrome.webRequest.onCompleted
 chrome.webRequest.onBeforeRequest.addListener(
   function(details) {
-    let currentUrl = urlsMap.get(details.tabId);
-    if (details.url.startsWith(currentUrl) && details.url.endsWith('requestdata')) {
+    const {urlStart, urlEnd} = dbUrl;
+    if (details.url.startsWith(urlStart) && details.url.endsWith(urlEnd)) {
       let requestBody = details.requestBody.raw && details.requestBody.raw[0].bytes;
       const decoder = new TextDecoder('utf-8');
       const responseText = decoder.decode(requestBody);
       const httpBody = JSON.parse(responseText);
-      httpLogs.get(details.tabId).set(httpBody.boid, {body: httpBody, method: details.method, url: details.url});
+      httpLogs.get(details.tabId).set(httpBody.boid, httpBody);
       return { cancel: false };
     }
   },
-  { urls: urls }, // 监听以指定 URL 开头的请求
+  { urls: [dbUrl.urlStart] }, // 监听以指定 URL 开头的请求
   ['requestBody'] // 使用阻塞模式，需要返回一个对象
 );
 
