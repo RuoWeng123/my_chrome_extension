@@ -1,0 +1,13 @@
+{
+		"isSendError": true,
+		"fromConfig": {
+				"host": "smtp.163.com",
+				"port": 465,
+				"secure": true,
+				"auth": {
+						"user": "xuyang3_14@163.com",
+						"pass": ""
+				}
+		},
+		"toList": ["xuyangyang2@cmict.chinamobile.com", "suyuquan@gd.chinamobile.com", "liuyuanming@139.com"]
+}

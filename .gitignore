@@ -7,3 +7,9 @@ localLogs/package-lock.json
 test/*.csv
 test/*.xlsx
 test/*.http
+
+localLogs/config/cardBoidMap/
+localLogs/config/*.json
+localLogs/input/
+localLogs/output/
+localLogs/backup/

@@ -63,10 +63,9 @@ function downloadLogToCSV(tabId) {
     return;
   }
   let tabTitle = listenTabIds.get(tabId);
-  let csvContent = "body, tabTitle, boid, \n"; // CSV 表头
-  
+  let csvContent = "body\n"; // CSV 表头
   httpLogs.get(tabId).forEach((value, key) => {
-    const csvLine = `"${JSON.stringify(value).replace(/,/g, '￥')}", ${tabTitle.title}, ${key}\n`;
+    const csvLine = `${JSON.stringify(value).replace(/,/g, '￥')}\n`;
     csvContent += csvLine;
   });
   const fileName = `input_httpLogs_${new Date().getTime()}.csv`;
@@ -105,7 +104,7 @@ chrome.webRequest.onBeforeRequest.addListener(
       const decoder = new TextDecoder('utf-8');
       const responseText = decoder.decode(requestBody);
       const httpBody = JSON.parse(responseText);
-      httpLogs.get(details.tabId).set(httpBody.boid, httpBody);
+      httpLogs.get(details.tabId).set(responseText, httpBody);
       return { cancel: false };
     }
   },

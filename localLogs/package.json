@@ -22,8 +22,10 @@
   "dependencies": {
     "csv-parser": "^3.0.0",
     "dayjs": "^1.11.11",
+    "exceljs": "^4.4.0",
     "iconv-lite": "^0.6.3",
     "node-fetch": "^3.3.2",
+    "nodemailer": "^6.9.13",
     "xlsx-js-style": "^1.2.0"
   }
 }

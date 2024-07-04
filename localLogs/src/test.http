@@ -1,0 +1,19 @@
+POST https://172.29.0.187:443/iocpublic/postbojson_fun
+Content-Type: application/json
+X-HW-ID: *
+X-HW-APPKEY: *
+
+{
+		"boid": "M_YWSA_ZSB_YBMYWSYQK",
+		"pageView": {
+				"orderBy": "lbmc"
+		},
+		"paramX": {
+				"param1": "ylb",
+				"param2": "总量",
+				"param3": "lb",
+				"param4": "部门",
+				"param5": "lbmc",
+				"param6": "CPU"
+		}
+}
